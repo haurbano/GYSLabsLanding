@@ -19,3 +19,16 @@ class ObservabilityMarkupTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class ErrorTrackingMarkupTests(unittest.TestCase):
+    def test_loads_a_scrubbed_glitchtip_configuration(self):
+        root = Path(__file__).resolve().parents[1]
+        html = root.joinpath("index.html").read_text()
+        config = root.joinpath("sentry.js").read_text()
+        self.assertIn('src="https://browser.sentry-cdn.com/7.120.4/bundle.min.js"', html)
+        self.assertIn('src="sentry.js"', html)
+        self.assertIn('@ingest.haurtech.com/5', config)
+        self.assertIn('sendDefaultPii: false', config)
+        self.assertIn('beforeBreadcrumb: () => null', config)
+        self.assertIn('delete event.request', config)
+        self.assertIn('delete event.breadcrumbs', config)
