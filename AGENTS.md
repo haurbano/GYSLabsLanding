@@ -45,15 +45,25 @@ que resuelvan desde cualquier profundidad.
 | `ingest.haurtech.com` | Errores Sentry/GlitchTip | público |
 
 El website de Umami es `gyslabs.com`; **las tres páginas** cargan el script
-desde `track.haurtech.com`. Solo están permitidos los eventos semánticos
-literales `contact_email` y `contact_whatsapp`. Nunca agregar al evento el
-email, teléfono, mensaje, URL de WhatsApp, parámetros de campaña u otra
-propiedad dinámica.
+desde `track.haurtech.com`. La allowlist de eventos es cerrada y todos son
+literales:
 
-Los clics a `/agents`, `/greentax` y al portal de clientes **no están
-instrumentados** a propósito: medirlos exigiría nombres nuevos en la
-allowlist. Si se agregan, tienen que ser literales y sin propiedades, y el
-test de abajo hay que ampliarlo en el mismo cambio.
+| Evento | Dónde |
+|---|---|
+| `contact_email` | botón "Escríbenos" (las tres páginas) |
+| `contact_whatsapp` | botón "WhatsApp" (las tres páginas) |
+| `service_agents` | tarjeta de servicio "Agentes de IA" (solo `/`) |
+| `service_greentax` | tarjeta de servicio "GreenTax" (solo `/`) |
+| `portal_login` | todo enlace al portal: nav, hero y tarjeta de `/greentax`, más el footer de las tres |
+
+`portal_login` usa **un solo nombre** desde sus cuatro botones a propósito:
+distinguir cuál se hizo clic exigiría cuatro literales más, y una propiedad
+está prohibida. Si algún día hace falta ese desglose, van cuatro nombres
+literales — nunca `data-umami-event-<prop>`.
+
+Nunca agregar al evento el email, teléfono, mensaje, URL de WhatsApp,
+parámetros de campaña u otra propiedad dinámica. Un evento nuevo entra en
+`ALLOWED_EVENTS` del test en el mismo cambio, o la suite falla.
 
 Cada página carga el SDK y luego `sentry.js`. Ese archivo debe conservar
 `sendDefaultPii: false`, cero breadcrumbs y el scrub de request, usuario,

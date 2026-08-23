@@ -8,6 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 # raíz: cada una carga el tracker y el scrub de errores por su cuenta.
 PAGES = ("index.html", "agents/index.html", "greentax/index.html")
 
+# Allowlist cerrada de eventos. Todos son literales y ninguno lleva
+# propiedades: nada de rutas, ids, montos ni texto del visitante.
+ALLOWED_EVENTS = {
+    "contact_email",
+    "contact_whatsapp",
+    "service_agents",
+    "service_greentax",
+    "portal_login",
+}
+
 
 class ObservabilityMarkupTests(unittest.TestCase):
     def test_every_page_loads_shared_umami_tracker(self):
@@ -26,13 +36,27 @@ class ObservabilityMarkupTests(unittest.TestCase):
                 self.assertNotIn('data-umami-event="contact_email:', html)
                 self.assertNotIn('data-umami-event="contact_whatsapp:', html)
 
-    def test_no_event_names_beyond_the_two_allowed(self):
-        allowed = {"contact_email", "contact_whatsapp"}
+    def test_no_event_names_beyond_the_allowlist(self):
         for page in PAGES:
             with self.subTest(page=page):
                 html = ROOT.joinpath(page).read_text()
                 found = set(re.findall(r'data-umami-event="([^"]*)"', html))
-                self.assertEqual(found - allowed, set())
+                self.assertEqual(found - ALLOWED_EVENTS, set())
+
+    def test_service_cards_and_portal_are_instrumented(self):
+        home = ROOT.joinpath("index.html").read_text()
+        self.assertIn('href="/agents" data-umami-event="service_agents"', home)
+        self.assertIn('href="/greentax" data-umami-event="service_greentax"', home)
+
+        # cada enlace al portal dispara el mismo literal, en las tres páginas
+        for page in PAGES:
+            with self.subTest(page=page):
+                html = ROOT.joinpath(page).read_text()
+                portal = html.count('href="https://greentax.gyslabs.com/clientes/"')
+                tagged = html.count(
+                    'href="https://greentax.gyslabs.com/clientes/" data-umami-event="portal_login"'
+                )
+                self.assertEqual(portal, tagged, f"{page}: enlaces al portal sin evento")
 
     def test_no_dynamic_umami_properties(self):
         # data-umami-event-<prop> es cómo Umami adjunta propiedades: ninguna
